@@ -17,6 +17,8 @@ function App() {
     if (data.url) {
       setUploadedUrl(data.url);
     }
+
+    setMessage("File uploaded successfully: " + data.url);
   };
 
   return (
