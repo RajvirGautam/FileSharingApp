@@ -1,34 +1,44 @@
-import formidable from "formidable";
-import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const config = {
   api: {
-    bodyParser: false, // disable default body parsing
+    bodyParser: false,
   },
 };
 
+import formidable from "formidable";
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "POST") {
+    const form = formidable({ multiples: false });
 
-  const form = formidable({ multiples: false });
+    form.parse(req, async (err, fields, files) => {
+      if (err) {
+        return res.status(500).json({ error: "Error parsing file" });
+      }
 
-  form.parse(req, (err, fields, files) => {
-    if (err) {
-      return res.status(500).json({ error: "File parsing failed" });
-    }
+      const file = files.file;
 
-    // Access uploaded file
-    const file = files.file[0];
+      try {
+        const uploadRes = await cloudinary.uploader.upload(file.filepath, {
+          folder: "vercel_uploads", // optional folder name
+        });
 
-    // ❌ fs.writeFile won't persist on Vercel
-    // ✅ Instead: forward `file.filepath` to cloud storage
-
-    return res.status(200).json({
-      message: "File received",
-      fileName: file.originalFilename,
-      size: file.size,
+        return res.status(200).json({
+          message: "File uploaded successfully",
+          url: uploadRes.secure_url,
+        });
+      } catch (e) {
+        return res.status(500).json({ error: "Upload failed", details: e });
+      }
     });
-  });
+  } else {
+    res.status(405).json({ error: "Method not allowed" });
+  }
 }
