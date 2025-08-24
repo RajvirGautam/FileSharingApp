@@ -1,16 +1,44 @@
-import React, { useState } from "react";
-import FileUpload from "./components/FileUpload";
-import FileList from "./components/FileList";
-import "./App.css";
+import { useState } from "react";
 
-export default function App() {
-  const [files, setFiles] = useState([]);
+function App() {
+  const [file, setFile] = useState(null);
+  const [message, setMessage] = useState("");
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      setMessage("Please select a file first!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      setMessage(data.message || "Upload complete");
+    } catch (err) {
+      setMessage("Upload failed!");
+      console.error(err);
+    }
+  };
 
   return (
-    <div className="app">
-      <h1>📂 File Upload (Vercel + React)</h1>
-      <FileUpload onUpload={setFiles} />
-      <FileList files={files} />
+    <div style={{ padding: "20px" }}>
+      <h1>File Upload Demo</h1>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload</button>
+      <p>{message}</p>
     </div>
   );
 }
+
+export default App;
